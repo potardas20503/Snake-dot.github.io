@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>snake dot </title>
+<style>
+body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: #f0f0f0;
+    font-family: Arial, sans-serif;
+}
+canvas {
+    border: 2px solid #333;
+    background-color: #fff;
+}
+button {
+    margin-top: 20px;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+}
+#gameOverMessage {
+    display: none;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 20px;
+    border-radius: 10px;
+    font-size: 24px;
+    text-align: center;
+}
+</style>
+</head>
+<body>
+<h1>🐍SNAKE DOT🐍</h1>
+<canvas id="gameCanvas" width="400" height="400"></canvas>
+<button id="restartButton">Restart</button>
+<div id="gameOverMessage">Game Over! <br> Click Restart to Play Again</div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const box = 20;
+const fps = 15; // Set FPS to 15
+const interval = 1000 / fps; // Interval in milliseconds
+let snake, direction, food, gameOver;
+let lastRenderTime = 0;
+let directionQueue = [];
+
+function init() {
+    snake = [{ x: 9 * box, y: 9 * box }];
+    direction = null; // Start with no movement
+    food = {
+        x: Math.floor(Math.random() * 20) * box,
+        y: Math.floor(Math.random() * 20) * box
+    };
+    gameOver = false;
+    lastRenderTime = 0;
+    directionQueue = []; // Clear direction queue
+    document.getElementById('gameOverMessage').style.display = 'none'; // Hide game over message
+}
+
+document.addEventListener('keydown', directionControl);
+function directionControl(event) {
+    if (event.keyCode == 37 && direction != 'RIGHT') directionQueue.push('LEFT');
+    else if (event.keyCode == 38 && direction != 'DOWN') directionQueue.push('UP');
+    else if (event.keyCode == 39 && direction != 'LEFT') directionQueue.push('RIGHT');
+    else if (event.keyCode == 40 && direction != 'UP') directionQueue.push('DOWN');
+}
+
+function draw() {
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    for (let i = 0; i < snake.length; i++) {
+        ctx.fillStyle = (i === 0) ? 'green' : 'lightgreen';
+        ctx.fillRect(snake[i].x, snake[i].y, box, box);
+        ctx.strokeStyle = 'darkgreen';
+        ctx.strokeRect(snake[i].x, snake[i].y, box, box);
+    }
+
+    ctx.fillStyle = 'red';
+    ctx.fillRect(food.x, food.y, box, box);
+
+    if (direction) {
+        let snakeX = snake[0].x;
+        let snakeY = snake[0].y;
+
+        if (direction == 'LEFT') snakeX -= box;
+        if (direction == 'UP') snakeY -= box;
+        if (direction == 'RIGHT') snakeX += box;
+        if (direction == 'DOWN') snakeY += box;
+
+        if (snakeX == food.x && snakeY == food.y) {
+            food = {
+                x: Math.floor(Math.random() * 20) * box,
+                y: Math.floor(Math.random() * 20) * box
+            };
+        } else {
+            snake.pop();
+        }
+
+        let newHead = { x: snakeX, y: snakeY };
+
+        // Check collision with walls
+        if (snakeX < 0 || snakeY < 0 || snakeX >= canvas.width || snakeY >= canvas.height) {
+            gameOver = true;
+            document.getElementById('gameOverMessage').style.display = 'block'; // Show game over message
+            return; // Stop the game loop
+        }
+
+        // Check collision with itself
+        if (collision(newHead, snake)) {
+            gameOver = true;
+            document.getElementById('gameOverMessage').style.display = 'block'; // Show game over message
+            return; // Stop the game loop
+        } else {
+            snake.unshift(newHead);
+        }
+    }
+}
+
+function collision(head, array) {
+    for (let i = 0; i < array.length; i++) {
+        if (head.x == array[i].x && head.y == array[i].y) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function gameLoop(currentTime) {
+    if (gameOver) return;
+
+    const elapsed = currentTime - lastRenderTime;
+    if (elapsed < interval) {
+        requestAnimationFrame(gameLoop);
+        return;
+    }
+
+    lastRenderTime = currentTime;
+
+    if (directionQueue.length > 0) {
+        direction = directionQueue.shift();
+    }
+
+    draw();
+    requestAnimationFrame(gameLoop);
+}
+
+init();
+requestAnimationFrame(gameLoop);
+
+document.getElementById('restartButton').addEventListener('click', function() {
+    init();
+    requestAnimationFrame(gameLoop);
+});
+</script>
+</body>
+</html>
